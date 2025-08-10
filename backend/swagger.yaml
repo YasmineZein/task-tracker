@@ -6,6 +6,72 @@ info:
 servers:
   - url: http://localhost:3000
 
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Task:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        estimate_time:
+          type: number
+        logged_time:
+          type: number
+        priority:
+          type: string
+        due_date:
+          type: string
+          format: date
+        userId:
+          type: string
+        timeLogHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              entryId:
+                type: integer
+              duration:
+                type: number
+              date:
+                type: string
+                format: date-time
+              note:
+                type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User ID
+        name:
+          type: string
+          description: User's name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        created_at:
+          type: string
+          format: date-time
+          description: User creation date
+
+security:
+  - bearerAuth: []
+
 paths:
   /api/auth/signup:
     post:
@@ -52,6 +118,7 @@ paths:
       requestBody:
         required: true
         content:
+          security: []
           application/json:
             schema:
               type: object
@@ -89,6 +156,7 @@ paths:
       responses:
         '200':
           description: List of tasks
+          security: []
           content:
             application/json:
               schema:
@@ -107,7 +175,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                estimate_time:
+                  type: number
+                logged_time:
+                  type: number
+                priority:
+                  type: string
+                due_date:
+                  type: string
+                  format: date
+                userId:
+                  type: string
       responses:
         '201':
           description: Task created successfully
@@ -391,58 +477,3 @@ paths:
         '404':
           description: Task not found
 
-components:
-  schemas:
-    Task:
-      type: object
-      properties:
-        taskId:
-          type: integer
-        title:
-          type: string
-        description:
-          type: string
-        status:
-          type: string
-        estimate_time:
-          type: number
-        logged_time:
-          type: number
-        priority:
-          type: string
-        due_date:
-          type: string
-          format: date
-        userId:
-          type: string
-        timeLogHistory:
-          type: array
-          items:
-            type: object
-            properties:
-              entryId:
-                type: integer
-              duration:
-                type: number
-              date:
-                type: string
-                format: date-time
-              note:
-                type: string
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-          description: User ID
-        name:
-          type: string
-          description: User's name
-        email:
-          type: string
-          format: email
-          description: User's email address
-        created_at:
-          type: string
-          format: date-time
-          description: User creation date
