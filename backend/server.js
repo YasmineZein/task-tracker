@@ -3,8 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const Logger = require('./config/logger');
 const morganMiddleware = require('./config/morgan');
-
 const app = express();
+// Swagger UI integration (with error handling)
+require('./config/swagger')(app);
 const PORT = env.PORT;
 
 // Add Morgan HTTP request logging middleware
@@ -19,22 +20,6 @@ app.use(
 );
 
 app.use(express.json());
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  Logger.info('Health check requested');
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
-
-// Test route
-app.get('/api/test', (req, res) => {
-  Logger.info('Test endpoint called');
-  res.json({ message: 'Server is working with logging!' });
-});
 
 // Load routes
 try {
