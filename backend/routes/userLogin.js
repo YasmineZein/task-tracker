@@ -45,4 +45,83 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/profile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res
+        .status(401)
+        .json({ success: false, message: 'No token provided.' });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findByPk(decoded.userId, {
+            attributes: { exclude: ['password'] },
+        });
+        if (!user) {
+            return res
+                .status(404)
+                .json({ success: false, message: 'User not found.' });
+        }
+        return res.status(200).json({ success: true, user });
+    }
+    catch (err) {
+        console.error('Error fetching profile:', err);
+        return res.status(500).json({ success: false, message: 'Server error.' });
+    }
+});
+
+router.put('/profile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res
+        .status(401)
+        .json({ success: false, message: 'No token provided.' });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findByPk(decoded.userId);
+        if (!user) {
+            return res
+                .status(404)
+                .json({ success: false, message: 'User not found.' });
+        }
+
+        const { name, email } = req.body;
+        if (name) user.name = name;
+        if (email) user.email = email;
+
+        await user.save();
+        return res.status(200).json({ success: true, message: 'Profile updated successfully.', user });
+    }
+    catch (err) {
+        console.error('Error updating profile:', err);
+        return res.status(500).json({ success: false, message: 'Server error.' });
+    }
+});
+
+router.delete('/profile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res
+        .status(401)
+        .json({ success: false, message: 'No token provided.' });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findByPk(decoded.userId);
+        if (!user) {
+            return res
+                .status(404)
+                .json({ success: false, message: 'User not found.' });
+        }
+
+        await user.destroy();
+        return res.status(200).json({ success: true, message: 'Profile deleted successfully.' });
+    }
+    catch (err) {
+        console.error('Error deleting profile:', err);
+        return res.status(500).json({ success: false, message: 'Server error.' });
+    }
+});
+
 module.exports = router;
