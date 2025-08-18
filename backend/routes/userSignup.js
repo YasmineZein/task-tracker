@@ -3,11 +3,15 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Logger = require('../config/logger');
 
 router.post('/signup', async (req, res) => {
   const { email, password, name } = req.body;
 
+  Logger.info('Signup attempt initiated', { email, name });
+
   if (!email || !password || !name) {
+    Logger.warn('Signup failed - missing required fields', { email, name });
     return res.status(400).json({
       success: false,
       message: 'Missing required fields: email, password, name.',
@@ -16,6 +20,7 @@ router.post('/signup', async (req, res) => {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
+    Logger.warn('Signup failed - invalid email format', { email });
     return res
       .status(400)
       .json({ success: false, message: 'Invalid email format.' });
@@ -23,6 +28,7 @@ router.post('/signup', async (req, res) => {
 
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
   if (!passwordRegex.test(password)) {
+    Logger.warn('Signup failed - weak password', { email });
     return res.status(400).json({
       success: false,
       message:
@@ -33,6 +39,7 @@ router.post('/signup', async (req, res) => {
   try {
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
+      Logger.warn('Signup failed - email already registered', { email });
       return res
         .status(409)
         .json({ success: false, message: 'Email is already registered.' });
@@ -44,6 +51,12 @@ router.post('/signup', async (req, res) => {
       name,
       email,
       password: hashedPassword,
+    });
+
+    Logger.info('User created successfully', {
+      userId: newUser.userId,
+      email: newUser.email,
+      name: newUser.name,
     });
 
     // Generate JWT token for automatic login
@@ -61,6 +74,10 @@ router.post('/signup', async (req, res) => {
       created_at: newUser.created_at,
     };
 
+    Logger.info('User signup completed successfully', {
+      userId: newUser.userId,
+    });
+
     return res.status(201).json({
       success: true,
       message: 'User created successfully.',
@@ -68,7 +85,11 @@ router.post('/signup', async (req, res) => {
       user: userData,
     });
   } catch (err) {
-    console.error('Error during signup:', err);
+    Logger.error('Error during signup:', {
+      error: err.message,
+      stack: err.stack,
+      email,
+    });
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });

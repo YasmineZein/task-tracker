@@ -3,11 +3,15 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Logger = require('../config/logger');
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
+  Logger.info('Login attempt initiated', { email });
+
   if (!email || !password) {
+    Logger.warn('Login failed - missing credentials', { email });
     return res
       .status(400)
       .json({ success: false, message: 'Missing email or password.' });
@@ -16,6 +20,7 @@ router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ where: { email } });
     if (!user) {
+      Logger.warn('Login failed - user not found', { email });
       return res
         .status(401)
         .json({ success: false, message: 'Invalid credentials.' });
@@ -23,6 +28,10 @@ router.post('/login', async (req, res) => {
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
+      Logger.warn('Login failed - invalid password', {
+        email,
+        userId: user.userId,
+      });
       return res
         .status(401)
         .json({ success: false, message: 'Invalid credentials.' });
@@ -43,6 +52,11 @@ router.post('/login', async (req, res) => {
       created_at: user.created_at,
     };
 
+    Logger.info('User login successful', {
+      userId: user.userId,
+      email: user.email,
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Login successful.',
@@ -50,7 +64,11 @@ router.post('/login', async (req, res) => {
       user: userData,
     });
   } catch (err) {
-    console.error('Error during login:', err);
+    Logger.error('Error during login:', {
+      error: err.message,
+      stack: err.stack,
+      email,
+    });
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });

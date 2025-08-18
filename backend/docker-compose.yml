@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: 306200515
       POSTGRES_DB: Task_Tracker
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -34,7 +34,7 @@ services:
       JWT_SECRET: yasmine_jwt_secret
       DB_DIALECT: postgres
     ports:
-      - "3000:3000"
+      - '3000:3000'
     depends_on:
       - postgres
     networks:
@@ -51,7 +51,7 @@ services:
       REACT_APP_APP_NAME: Task Tracker
       REACT_APP_ENVIRONMENT: production
     ports:
-      - "80:80"
+      - '80:80'
     depends_on:
       - backend
     networks:

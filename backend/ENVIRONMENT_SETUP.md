@@ -5,18 +5,21 @@ This document explains the environment variable management and containerization 
 ## 🎯 What Was Implemented
 
 ### Backend Environment Variables
+
 - **Development**: Uses `.env` file loaded conditionally (only when `NODE_ENV !== 'production'`)
 - **Production**: Environment variables provided via Docker Compose
 - **Validation**: Uses `envalid` library to validate and sanitize environment variables
 - **Clean Architecture**: Centralized environment configuration in `config/env.js`
 
 ### Frontend Environment Variables
+
 - **Development**: Uses Vite's `.env` file support
 - **Production**: Runtime injection via `envsubst` in Docker container
 - **Dual Support**: Works with both build-time and runtime environment variables
 - **Configuration Helper**: Centralized environment access via `src/config/env.js`
 
 ### Containerization
+
 - **Backend**: Node.js Docker container with production-ready configuration
 - **Frontend**: Multi-stage Docker build (React build + Nginx serving)
 - **Database**: PostgreSQL container with persistent volumes
@@ -25,6 +28,7 @@ This document explains the environment variable management and containerization 
 ## 📁 Files Created/Modified
 
 ### Backend
+
 - `config/env.js` - Environment variable validation and loading
 - `Dockerfile` - Backend containerization
 - `docker-compose.yml` - Complete application orchestration
@@ -33,6 +37,7 @@ This document explains the environment variable management and containerization 
 - `server.js` - Updated to use new environment configuration
 
 ### Frontend
+
 - `Dockerfile` - Frontend containerization with Nginx
 - `nginx.conf` - Nginx configuration for serving React app
 - `entrypoint.sh` - Runtime environment variable injection
@@ -47,6 +52,7 @@ This document explains the environment variable management and containerization 
 ## 🚀 How to Run
 
 ### Development Mode
+
 ```bash
 # Backend
 cd backend
@@ -60,6 +66,7 @@ npm run dev
 ```
 
 ### Production Mode with Docker
+
 ```bash
 # From the backend directory (where docker-compose.yml is located)
 cd backend
@@ -67,6 +74,7 @@ docker-compose up --build
 ```
 
 This will start:
+
 - PostgreSQL database on port 5432
 - Backend API on port 3000
 - Frontend on port 80
@@ -74,6 +82,7 @@ This will start:
 ## 🔧 Environment Variables
 
 ### Backend (.env)
+
 ```env
 DB_HOST=localhost
 DB_PORT=3000
@@ -86,6 +95,7 @@ DB_DIALECT=postgres
 ```
 
 ### Frontend (.env)
+
 ```env
 REACT_APP_API_URL=http://localhost:3000
 REACT_APP_APP_NAME=Task Tracker
@@ -102,11 +112,12 @@ REACT_APP_ENVIRONMENT=development
 ## 📋 What You Need to Do Next
 
 1. **Test the setup**:
+
    ```bash
    # Test backend environment loading
    cd backend
    node -e "const env = require('./config/env'); console.log('Loaded:', env.NODE_ENV, env.PORT);"
-   
+
    # Test Docker build
    docker-compose build
    ```
@@ -116,6 +127,7 @@ REACT_APP_ENVIRONMENT=development
    - Update database credentials in `.env` if different
 
 3. **Test the complete stack**:
+
    ```bash
    cd backend
    docker-compose up
@@ -129,11 +141,13 @@ REACT_APP_ENVIRONMENT=development
 ## 🔍 How It Works
 
 ### Development
+
 - Backend loads `.env` file using dotenv
 - Frontend uses Vite's environment variable support
 - Both applications run on separate ports
 
 ### Production (Docker)
+
 - Backend gets environment variables from Docker Compose
 - Frontend gets environment variables injected at runtime via `entrypoint.sh`
 - All services run in Docker containers with proper networking
