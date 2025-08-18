@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const app = express();
-const PORT = process.env.DB_PORT;
+const PORT = process.env.PORT || 3000;
 
 const userSignupRouter = require('./routes/userSignup');
 const userLoginRouter = require('./routes/userLogin');
@@ -20,7 +20,7 @@ app.use(
 app.use(express.json());
 app.use('/api/auth', userSignupRouter);
 app.use('/api/auth', userLoginRouter);
-app.use('/api/tasks', taskRouter);
+app.use('/api', taskRouter);
 
 sequelize
   .authenticate()
