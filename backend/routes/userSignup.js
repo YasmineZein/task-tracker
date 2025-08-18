@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 router.post('/signup', async (req, res) => {
   const { email, password, name } = req.body;
@@ -39,10 +40,32 @@ router.post('/signup', async (req, res) => {
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    await User.create({ name, email, password: hashedPassword });
-    return res
-      .status(201)
-      .json({ success: true, message: 'User created successfully.' });
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    // Generate JWT token for automatic login
+    const token = jwt.sign(
+      { userId: newUser.userId, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' },
+    );
+
+    // Return user data (without password) and token
+    const userData = {
+      id: newUser.userId,
+      name: newUser.name,
+      email: newUser.email,
+    };
+
+    return res.status(201).json({
+      success: true,
+      message: 'User created successfully.',
+      token,
+      user: userData,
+    });
   } catch (err) {
     console.error('Error during signup:', err);
     return res.status(500).json({ success: false, message: 'Server error.' });

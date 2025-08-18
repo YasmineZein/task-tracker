@@ -34,10 +34,19 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1h' },
     );
+
+    // Return user data (without password) and token
+    const userData = {
+      id: user.userId,
+      name: user.name,
+      email: user.email,
+    };
+
     return res.status(200).json({
       success: true,
       message: 'Login successful.',
       token,
+      user: userData,
     });
   } catch (err) {
     console.error('Error during login:', err);

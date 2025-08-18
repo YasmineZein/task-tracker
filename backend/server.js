@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const sequelize = require('./config/database');
 const app = express();
 const PORT = process.env.DB_PORT;
@@ -7,6 +8,14 @@ const PORT = process.env.DB_PORT;
 const userSignupRouter = require('./routes/userSignup');
 const userLoginRouter = require('./routes/userLogin');
 const taskRouter = require('./routes/tasks');
+
+// Enable CORS for frontend
+app.use(
+  cors({
+    origin: 'http://localhost:5173', // Vite dev server
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use('/api/auth', userSignupRouter);
