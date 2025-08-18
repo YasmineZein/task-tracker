@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { taskAPI } from '../services/taskAPI';
+import { userAPI } from '../services/userAPI';
 import Timer from './Timer';
 import TimerButton from './TimerButton';
 import RunningTimersDisplay from './RunningTimersDisplay';
+import UserProfile from './UserProfile';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -49,6 +51,26 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
+  // Function to fetch complete user profile including created_at
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const response = await userAPI.getProfile();
+      if (response.success) {
+        setUser(response.user);
+        // Update localStorage with complete user data
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      // If token is invalid, redirect to login
+      if (error.message.includes('401') || error.message.includes('unauthorized')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
@@ -67,15 +89,27 @@ const Dashboard = () => {
       console.log('Dashboard - Parsed user:', parsedUser);
       setUser(parsedUser);
       
-      // Fetch tasks after setting user
+      // Fetch complete user profile and tasks
+      fetchUserProfile();
       fetchTasks();
     } catch (error) {
       console.error('Error parsing user data:', error);
       navigate('/login');
     }
-  }, [navigate, fetchTasks]);
+  }, [navigate, fetchTasks, fetchUserProfile]);
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  // Profile management handlers
+  const handleProfileUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
+  const handleAccountDelete = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
@@ -383,41 +417,11 @@ const Dashboard = () => {
           {/* Main Content Area - Conditional Rendering */}
           {activeView === 'overview' ? (
             /* Profile Section */
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
-              <h3 className="text-xl font-bold mb-6 flex items-center" style={{ color: '#3D0301' }}>
-                <svg className="h-6 w-6 mr-2" style={{ color: '#B03052' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Your Profile
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-12 w-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #B03052, #3D0301)' }}>
-                      <span className="text-white text-lg font-bold">
-                        {user.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-semibold" style={{ color: '#3D0301' }}>{user.name}</p>
-                      <p className="text-gray-600">{user.email}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">User ID:</span>
-                    <span className="font-mono text-sm px-2 py-1 rounded" style={{ backgroundColor: '#EBE8DB', color: '#3D0301' }}>
-                      {user.id}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Member since:</span>
-                    <span style={{ color: '#3D0301' }}>Today</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <UserProfile 
+              user={user} 
+              onProfileUpdate={handleProfileUpdate}
+              onAccountDelete={handleAccountDelete}
+            />
           ) : (
             /* Tasks Management View */
             <div className="space-y-6">

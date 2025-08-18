@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 const userSignupRouter = require('./routes/userSignup');
 const userLoginRouter = require('./routes/userLogin');
+const userManagementRouter = require('./routes/userManagement');
 const taskRouter = require('./routes/tasks');
 
 // Enable CORS for frontend
@@ -20,6 +21,7 @@ app.use(
 app.use(express.json());
 app.use('/api/auth', userSignupRouter);
 app.use('/api/auth', userLoginRouter);
+app.use('/api/user', userManagementRouter);
 app.use('/api', taskRouter);
 
 sequelize
