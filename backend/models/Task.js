@@ -39,6 +39,11 @@ const Task = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    timeLogHistory: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [], // Array of { entryId, duration, date, note }
+    },
     due_date: {
       type: DataTypes.DATE,
       allowNull: true,

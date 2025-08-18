@@ -40,6 +40,11 @@ module.exports = {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      timeLogHistory: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+      },
       due_date: {
         type: DataTypes.DATE,
         allowNull: true,

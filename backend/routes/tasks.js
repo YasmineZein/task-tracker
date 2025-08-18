@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 
+//Crud operations for tasks
 router.post('/tasks', async (req, res) => {
   const { title, description, status, estimate_time, logged_time, userId } =
     req.body;
@@ -106,4 +107,197 @@ router.delete('/tasks/:id', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
+
+//Time Logging
+router.post('/tasks/:id/time-log', async (req, res) => {
+  const { id } = req.params;
+  const { duration, note } = req.body;
+
+  if (!duration || duration <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Invalid duration.' });
+  }
+
+  try {
+    const task = await Task.findByPk(id);
+    if (!task) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Task not found.' });
+    }
+
+    const entryId = task.timeLogHistory.length + 1;
+    task.logged_time += duration;
+    task.timeLogHistory.push({ entryId, duration, date: new Date(), note });
+
+    await task.save();
+    return res.status(200).json({
+      success: true,
+      message: 'Time logged successfully.',
+      task,
+    });
+  } catch (err) {
+    console.error('Error logging time:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+router.put('/tasks/:id/time-log/:entryId', async (req, res) => {
+  const { id, entryId } = req.params;
+  const { duration, note } = req.body;
+
+  if (!duration || duration <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Invalid duration.' });
+  }
+
+  try {
+    const task = await Task.findByPk(id);
+    if (!task) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Task not found.' });
+    }
+
+    const entry = task.timeLogHistory.find(
+      (e) => e.entryId === parseInt(entryId),
+    );
+    if (!entry) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Time log entry not found.' });
+    }
+
+    entry.duration = duration;
+    entry.note = note || entry.note;
+    await task.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Time log updated successfully.',
+      task,
+    });
+  } catch (err) {
+    console.error('Error updating time log:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+router.get('/tasks/:taskId/time-summary', async (req, res) => {
+  const { taskId } = req.params;
+  try {
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Task not found.' });
+    }
+
+    const timeSummary = {
+      totalLoggedTime: task.logged_time || 0,
+      timeLogHistory: task.timeLogHistory || [],
+    };
+
+    return res.status(200).json({
+      success: true,
+      timeSummary,
+    });
+  } catch (err) {
+    console.error('Error fetching time summary:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+router.get('/analytics/time', async (req, res) => {
+  try {
+    const tasks = await Task.findAll();
+    if (!tasks || tasks.length === 0) {
+      return res.status(200).json({
+        success: true,
+        analytics: {
+          totalTasks: 0,
+          completedTasks: 0,
+          totalEstimatedTime: 0,
+          totalLoggedTime: 0,
+          estimationAccuracy: null,
+          dailyProgress: [],
+          weeklyProgress: [],
+        },
+      });
+    }
+
+    // Aggregate analytics
+    let totalEstimatedTime = 0;
+    let totalLoggedTime = 0;
+    let completedTasks = 0;
+    let dailyProgressMap = {};
+    let weeklyProgressMap = {};
+
+    tasks.forEach((task) => {
+      if (task.estimate_time) totalEstimatedTime += task.estimate_time;
+      if (task.logged_time) totalLoggedTime += task.logged_time;
+      if (task.status === 'Done') completedTasks++;
+
+      // Daily/weekly progress from timeLogHistory
+      if (Array.isArray(task.timeLogHistory)) {
+        task.timeLogHistory.forEach((entry) => {
+          const date = new Date(entry.date);
+          const day = date.toISOString().split('T')[0];
+          const week = `${date.getFullYear()}-W${getWeekNumber(date)}`;
+          // Daily
+          if (!dailyProgressMap[day]) dailyProgressMap[day] = 0;
+          dailyProgressMap[day] += entry.duration || 0;
+          // Weekly
+          if (!weeklyProgressMap[week]) weeklyProgressMap[week] = 0;
+          weeklyProgressMap[week] += entry.duration || 0;
+        });
+      }
+    });
+
+    // Estimation accuracy: (totalEstimatedTime - totalLoggedTime) / totalEstimatedTime
+    let estimationAccuracy = null;
+    if (totalEstimatedTime > 0) {
+      estimationAccuracy =
+        ((totalEstimatedTime - totalLoggedTime) / totalEstimatedTime) * 100;
+    }
+
+    // Format daily/weekly progress
+    const dailyProgress = Object.entries(dailyProgressMap).map(
+      ([date, duration]) => ({ date, duration }),
+    );
+    const weeklyProgress = Object.entries(weeklyProgressMap).map(
+      ([week, duration]) => ({ week, duration }),
+    );
+
+    return res.status(200).json({
+      success: true,
+      analytics: {
+        totalTasks: tasks.length,
+        completedTasks,
+        totalEstimatedTime,
+        totalLoggedTime,
+        estimationAccuracy,
+        dailyProgress,
+        weeklyProgress,
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching analytics:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Helper: Get ISO week number
+function getWeekNumber(date) {
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
+
 module.exports = router;
