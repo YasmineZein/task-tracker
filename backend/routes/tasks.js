@@ -1,16 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const auth = require('../middleware/auth');
+
+router.use(auth);
 
 //Crud operations for tasks
 router.post('/tasks', async (req, res) => {
-  const { title, description, status, estimate_time, logged_time, userId } =
-    req.body;
+  const {
+    title,
+    description,
+    status,
+    estimate_time,
+    logged_time,
+    priority,
+    due_date,
+  } = req.body;
 
   if (!title) {
     return res
       .status(400)
       .json({ success: false, message: 'Title is required.' });
+  }
+
+  if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Priority must be Low, Medium, or High.',
+    });
+  }
+
+  if (status && !['To-do', 'In progress', 'Done'].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Status must be To-do, In progress, or Done.',
+    });
   }
 
   try {
@@ -20,7 +44,9 @@ router.post('/tasks', async (req, res) => {
       status: status || 'To-do',
       estimate_time: estimate_time || null,
       logged_time: logged_time || 0,
-      userId,
+      priority: priority || 'Medium',
+      due_date: due_date || null,
+      userId: req.user.id,
     });
     return res
       .status(201)
@@ -33,7 +59,10 @@ router.post('/tasks', async (req, res) => {
 
 router.get('/tasks', async (req, res) => {
   try {
-    const tasks = await Task.findAll();
+    const tasks = await Task.findAll({
+      where: { userId: req.user.id },
+      order: [['created_at', 'DESC']],
+    });
     return res.status(200).json({ success: true, tasks });
   } catch (err) {
     console.error('Error fetching tasks:', err);
@@ -45,7 +74,12 @@ router.get('/tasks/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const task = await Task.findByPk(id);
+    const task = await Task.findOne({
+      where: {
+        taskId: id,
+        userId: req.user.id,
+      },
+    });
     if (!task) {
       return res
         .status(404)
@@ -60,9 +94,37 @@ router.get('/tasks/:id', async (req, res) => {
 
 router.put('/tasks/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, description, status, estimate_time, logged_time } = req.body;
+  const {
+    title,
+    description,
+    status,
+    estimate_time,
+    logged_time,
+    priority,
+    due_date,
+  } = req.body;
+
+  if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Priority must be Low, Medium, or High.',
+    });
+  }
+
+  if (status && !['To-do', 'In progress', 'Done'].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Status must be To-do, In progress, or Done.',
+    });
+  }
+
   try {
-    const task = await Task.findByPk(id);
+    const task = await Task.findOne({
+      where: {
+        taskId: id,
+        userId: req.user.id,
+      },
+    });
     if (!task) {
       return res
         .status(404)
@@ -74,6 +136,8 @@ router.put('/tasks/:id', async (req, res) => {
     task.status = status || task.status;
     task.estimate_time = estimate_time || task.estimate_time;
     task.logged_time = logged_time || task.logged_time;
+    task.priority = priority || task.priority;
+    task.due_date = due_date || task.due_date;
 
     await task.save();
     return res.status(200).json({
@@ -90,7 +154,12 @@ router.put('/tasks/:id', async (req, res) => {
 router.delete('/tasks/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const task = await Task.findByPk(id);
+    const task = await Task.findOne({
+      where: {
+        taskId: id,
+        userId: req.user.id,
+      },
+    });
     if (!task) {
       return res
         .status(404)
@@ -120,7 +189,12 @@ router.post('/tasks/:id/time-log', async (req, res) => {
   }
 
   try {
-    const task = await Task.findByPk(id);
+    const task = await Task.findOne({
+      where: {
+        taskId: id,
+        userId: req.user.id,
+      },
+    });
     if (!task) {
       return res
         .status(404)
@@ -154,7 +228,12 @@ router.put('/tasks/:id/time-log/:entryId', async (req, res) => {
   }
 
   try {
-    const task = await Task.findByPk(id);
+    const task = await Task.findOne({
+      where: {
+        taskId: id,
+        userId: req.user.id,
+      },
+    });
     if (!task) {
       return res
         .status(404)
@@ -188,7 +267,12 @@ router.put('/tasks/:id/time-log/:entryId', async (req, res) => {
 router.get('/tasks/:taskId/time-summary', async (req, res) => {
   const { taskId } = req.params;
   try {
-    const task = await Task.findByPk(taskId);
+    const task = await Task.findOne({
+      where: {
+        taskId: taskId,
+        userId: req.user.id,
+      },
+    });
     if (!task) {
       return res
         .status(404)
@@ -212,7 +296,9 @@ router.get('/tasks/:taskId/time-summary', async (req, res) => {
 
 router.get('/analytics/time', async (req, res) => {
   try {
-    const tasks = await Task.findAll();
+    const tasks = await Task.findAll({
+      where: { userId: req.user.id },
+    });
     if (!tasks || tasks.length === 0) {
       return res.status(200).json({
         success: true,
@@ -246,10 +332,10 @@ router.get('/analytics/time', async (req, res) => {
           const date = new Date(entry.date);
           const day = date.toISOString().split('T')[0];
           const week = `${date.getFullYear()}-W${getWeekNumber(date)}`;
-          // Daily
+
           if (!dailyProgressMap[day]) dailyProgressMap[day] = 0;
           dailyProgressMap[day] += entry.duration || 0;
-          // Weekly
+
           if (!weeklyProgressMap[week]) weeklyProgressMap[week] = 0;
           weeklyProgressMap[week] += entry.duration || 0;
         });

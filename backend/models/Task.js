@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database'); // Adjust the path as necessary
+const sequelize = require('../config/database');
 const User = require('./User');
 
 const Task = sequelize.define(
@@ -36,35 +36,30 @@ const Task = sequelize.define(
       allowNull: true,
     },
     logged_time: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.FLOAT,
       allowNull: true,
     },
     timeLogHistory: {
       type: DataTypes.JSON,
       allowNull: true,
-      defaultValue: [], // Array of { entryId, duration, date, note }
+      defaultValue: [],
     },
     due_date: {
       type: DataTypes.DATE,
       allowNull: true,
     },
     priority: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.ENUM('Low', 'Medium', 'High'),
       allowNull: true,
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+      defaultValue: 'Medium',
     },
   },
   {
     sequelize,
     modelName: 'Task',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 );
 
