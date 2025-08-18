@@ -1,9 +1,9 @@
-require('dotenv').config();
+const env = require('./config/env'); // Load and validate environment variables
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = env.PORT;
 
 const userSignupRouter = require('./routes/userSignup');
 const userLoginRouter = require('./routes/userLogin');

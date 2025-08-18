@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+import config from '../config/env.js';
+
+const API_BASE_URL = `${config.apiUrl}/api`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');

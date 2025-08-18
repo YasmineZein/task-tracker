@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: task_tracker_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 306200515
+      POSTGRES_DB: Task_Tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - task_tracker_network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task_tracker_backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: 306200515
+      DB_NAME: Task_Tracker
+      DATABASE_URL: postgres://postgres:306200515@postgres:5432/Task_Tracker
+      JWT_SECRET: yasmine_jwt_secret
+      DB_DIALECT: postgres
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - task_tracker_network
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: task_tracker_frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:3000
+      REACT_APP_APP_NAME: Task Tracker
+      REACT_APP_ENVIRONMENT: production
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - task_tracker_network
+
+volumes:
+  postgres_data:
+
+networks:
+  task_tracker_network:
+    driver: bridge
