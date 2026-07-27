@@ -7,7 +7,6 @@ servers:
   - url: http://localhost:3000
 
 components:
-
   securitySchemes:
     bearerAuth:
       type: http
@@ -476,4 +475,3 @@ paths:
           description: Invalid duration
         '404':
           description: Task not found
-
